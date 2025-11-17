@@ -1,42 +1,44 @@
 # Function Guesser
 
-Small React + Vite app where you try to reconstruct a hidden function from its graph. Build helper expressions, tweak them with the graphing UI, and submit your best guess.
+Guess the hidden function from its graph. Use helper expressions to dissect the shape, tune coefficients, and submit your final equation.
 
-## Features
-- Multiple difficulties with auto-generated target functions.
-- Helper expressions (Desmos-style) to compare against the target.
-- Live graph preview with grid/axes/line-weight toggles.
-- History sidebar to revisit past puzzles.
-- Developer-only solution reveal protected by a server-side password check.
+## Stack
+- Next.js (App Router), React, TypeScript, Tailwind classes
+- MathJax for rendering LaTeX; mathjs for evaluation
+- Desmos graphing embed (via loaded script)
 
-## Getting Started
-```bash
+## Quick Start
+```
 npm install
 npm run dev
 ```
+Open the printed localhost URL.
 
-Open the printed localhost URL to play (Next.js app router).
-
-### Environment
-Create `.env.local` in the project root:
+## Environment
+Create `.env.local`:
 ```
 SOLUTION_PASSWORD=aaa123!
 NEXT_PUBLIC_DESMOS_API_KEY=5780c33dee3c4b838f3badff005147b8
 ```
-`SOLUTION_PASSWORD` is read server-side by the API route; the Desmos key is client-exposed (required by their script) but stays out of the repo via `.env.local`.
+- `SOLUTION_PASSWORD` is read server-side by `/api/verify-solution`.
+- The Desmos key must be client-exposed (required by their script) but is kept out of the repo via env.
 
 ## Scripts
-- `npm run dev` – start Next dev server.
-- `npm run build` – production build.
-- `npm run start` – run the production build locally.
-- `npm run lint` – Next lint.
-- `npm run typecheck` – type-check with `tsc --noEmit`.
+- `npm run dev` – Next dev server
+- `npm run build` – production build
+- `npm run start` – run built app
+- `npm run lint` – Next lint
+- `npm run typecheck` – `tsc --noEmit`
+
+## Gameplay Highlights
+- Multiple difficulty buckets with auto-generated targets
+- Helper expressions (Desmos-style) to compare and tune shapes
+- Grid/axes/line-weight toggles; history to reload past puzzles
 
 ## Developer Solution Reveal
-- Clicking “Show solution (dev)” prompts for the password.
-- The password is verified server-side at `/api/verify-solution`; it never ships to the client bundle.
-- After a successful unlock, you can reveal solutions for subsequent puzzles without re-entering the password until you reload the tab.
+- “Show solution (dev)” prompts for the password.
+- Verification happens server-side at `/api/verify-solution`.
+- After a successful unlock, subsequent puzzles can be revealed without re-entering the password until the tab is reloaded.
 
 ## Notes
-- `.env.local` and other env files are gitignored.
-- Tech stack: React, TypeScript, Vite, Tailwind classes, mathjs, MathJax.
+- `.env.local` is gitignored; set env vars in Vercel for deploys.
