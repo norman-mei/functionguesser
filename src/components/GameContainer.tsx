@@ -66,9 +66,10 @@ interface HistoryEntry {
 
 interface GameContainerProps {
   settings: UserSettings;
+  onNotify?: (message: string) => void;
 }
 
-const GameContainer = ({ settings }: GameContainerProps) => {
+const GameContainer = ({ settings, onNotify }: GameContainerProps) => {
   const [puzzle, setPuzzle] = useState<Puzzle>(() => generatePuzzle(settings.enabledDifficulties));
   const [helpers, setHelpers] = useState<HelperExpression[]>(createHelpers);
   const [nextHelperId, setNextHelperId] = useState(3);
@@ -229,12 +230,13 @@ const GameContainer = ({ settings }: GameContainerProps) => {
       setShowSolutionPrompt(false);
       setSolutionAuthorized(true);
       setSolutionPassword('');
+      onNotify?.('Settings saved');
     } catch (err) {
       setSolutionError('Unable to contact the server. Please try again.');
     } finally {
       setSolutionLoading(false);
     }
-  }, [solutionPassword]);
+  }, [onNotify, solutionPassword]);
 
   const handleRequestShowSolution = useCallback(() => {
     if (solutionAuthorized) {
@@ -343,6 +345,7 @@ const GameContainer = ({ settings }: GameContainerProps) => {
           setSolutionError('');
           setSolutionPassword('');
           setSolutionLoading(false);
+          onNotify?.('Settings saved');
         }}
       >
         <div className="space-y-3 text-sm text-[var(--text)]">
@@ -372,6 +375,7 @@ const GameContainer = ({ settings }: GameContainerProps) => {
                 setSolutionError('');
                 setSolutionPassword('');
                 setSolutionLoading(false);
+                onNotify?.('Settings saved');
               }}
             >
               Cancel

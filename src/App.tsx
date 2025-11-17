@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import GameContainer from './components/GameContainer';
 import SettingsModal from './components/SettingsModal';
+import Toast from './components/ui/Toast';
 import { UserSettings } from './core/types';
 
 const defaultSettings: UserSettings = {
@@ -25,6 +26,8 @@ const defaultSettings: UserSettings = {
 function App() {
   const [settings, setSettings] = useState<UserSettings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('fg-settings');
@@ -49,6 +52,10 @@ function App() {
   }, [settings.theme]);
 
   const resolvedTheme = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return 'light';
+    }
+
     if (settings.theme === 'system') {
       return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     }
@@ -61,6 +68,21 @@ function App() {
     localStorage.setItem('fg-settings', JSON.stringify(settings));
   }, [resolvedTheme, settings]);
 
+  const showToast = useCallback((message: string) => {
+    if (toastTimeout.current) {
+      clearTimeout(toastTimeout.current);
+    }
+    setToastMessage(message);
+    toastTimeout.current = setTimeout(() => setToastMessage(null), 5000);
+  }, []);
+
+  const closeToast = useCallback(() => {
+    if (toastTimeout.current) {
+      clearTimeout(toastTimeout.current);
+    }
+    setToastMessage(null);
+  }, []);
+
   const layoutClasses = useMemo(
     () => 'bg-[var(--bg)] text-[var(--text)]',
     []
@@ -70,14 +92,18 @@ function App() {
     <div className={`min-h-screen ${layoutClasses}`}>
       <Header onOpenSettings={() => setSettingsOpen(true)} />
       <main className="mx-auto w-full max-w-7xl px-4 py-6">
-        <GameContainer settings={settings} />
+        <GameContainer settings={settings} onNotify={(message) => showToast(message)} />
       </main>
       <SettingsModal
         isOpen={settingsOpen}
         settings={settings}
         onChange={(next) => setSettings((prev) => ({ ...prev, ...next }))}
-        onClose={() => setSettingsOpen(false)}
+        onClose={() => {
+          setSettingsOpen(false);
+          showToast('Settings saved');
+        }}
       />
+      {toastMessage && <Toast message={toastMessage} onClose={closeToast} />}
     </div>
   );
 }
