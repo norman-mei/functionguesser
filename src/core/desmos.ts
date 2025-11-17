@@ -1,5 +1,5 @@
-const DESMOS_API_URL =
-  'https://www.desmos.com/api/v1.8/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6';
+const desmosKey = process.env.NEXT_PUBLIC_DESMOS_API_KEY;
+const DESMOS_API_URL = `https://www.desmos.com/api/v1.8/calculator.js?apiKey=${desmosKey ?? ''}`;
 
 declare global {
   interface Window {
@@ -10,6 +10,10 @@ declare global {
 let desmosPromise: Promise<any> | null = null;
 
 export const loadDesmosApi = (): Promise<any> => {
+  if (!desmosKey) {
+    return Promise.reject(new Error('Desmos API key is not configured.'));
+  }
+
   if (window.Desmos) {
     return Promise.resolve(window.Desmos);
   }

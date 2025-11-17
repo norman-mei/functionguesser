@@ -15,20 +15,22 @@ npm install
 npm run dev
 ```
 
-Open the printed localhost URL to play.
+Open the printed localhost URL to play (Next.js app router).
 
 ### Environment
 Create `.env.local` in the project root:
 ```
 SOLUTION_PASSWORD=aaa123!
+NEXT_PUBLIC_DESMOS_API_KEY=5780c33dee3c4b838f3badff005147b8
 ```
-For convenience in local dev, the server middleware also falls back to `aaa123!` if the env var is missing, but set the variable for production.
+`SOLUTION_PASSWORD` is read server-side by the API route; the Desmos key is client-exposed (required by their script) but stays out of the repo via `.env.local`.
 
 ## Scripts
-- `npm run dev` – start Vite dev server.
+- `npm run dev` – start Next dev server.
 - `npm run build` – production build.
-- `npm run preview` – preview the production build locally.
-- `npm run lint` – type-check with `tsc --noEmit`.
+- `npm run start` – run the production build locally.
+- `npm run lint` – Next lint.
+- `npm run typecheck` – type-check with `tsc --noEmit`.
 
 ## Developer Solution Reveal
 - Clicking “Show solution (dev)” prompts for the password.
