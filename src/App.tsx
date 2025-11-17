@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Header from './components/Header';
 import GameContainer from './components/GameContainer';
 import SettingsModal from './components/SettingsModal';
