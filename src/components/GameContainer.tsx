@@ -78,6 +78,9 @@ const GameContainer = ({ settings }: GameContainerProps) => {
   const [showSolution, setShowSolution] = useState(false);
   const [showSolutionPrompt, setShowSolutionPrompt] = useState(false);
   const [solutionError, setSolutionError] = useState('');
+  const [solutionPassword, setSolutionPassword] = useState('');
+  const [solutionLoading, setSolutionLoading] = useState(false);
+  const [solutionAuthorized, setSolutionAuthorized] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [autoAdvanceSeconds, setAutoAdvanceSeconds] = useState<number | null>(null);
   const advanceTimeoutRef = useRef<number | null>(null);
@@ -154,6 +157,8 @@ const GameContainer = ({ settings }: GameContainerProps) => {
     setShowSolution(false);
     setShowSolutionPrompt(false);
     setSolutionError('');
+    setSolutionPassword('');
+    setSolutionLoading(false);
   }, [clearAdvanceTimers]);
 
   const archiveCurrentPuzzle = useCallback(() => {
@@ -193,6 +198,53 @@ const GameContainer = ({ settings }: GameContainerProps) => {
     },
     [clearAdvanceTimers]
   );
+
+  const handleVerifySolution = useCallback(async () => {
+    if (!solutionPassword) {
+      setSolutionError('Please enter the password.');
+      return;
+    }
+
+    setSolutionLoading(true);
+    setSolutionError('');
+
+    try {
+      const response = await fetch('/api/verify-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: solutionPassword })
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { message?: string }
+        | null;
+      const message = payload?.message ?? 'Unable to verify password.';
+
+      if (!response.ok) {
+        setSolutionError(response.status === 401 ? 'Incorrect password.' : message);
+        return;
+      }
+
+      setShowSolution(true);
+      setShowSolutionPrompt(false);
+      setSolutionAuthorized(true);
+      setSolutionPassword('');
+    } catch (err) {
+      setSolutionError('Unable to contact the server. Please try again.');
+    } finally {
+      setSolutionLoading(false);
+    }
+  }, [solutionPassword]);
+
+  const handleRequestShowSolution = useCallback(() => {
+    if (solutionAuthorized) {
+      setShowSolution(true);
+      setShowSolutionPrompt(false);
+      return;
+    }
+
+    setShowSolutionPrompt(true);
+  }, [solutionAuthorized]);
 
   useEffect(() => {
     clearAdvanceTimers();
@@ -238,7 +290,7 @@ const GameContainer = ({ settings }: GameContainerProps) => {
         onOpenRules={() => setShowRules(true)}
         showMathPreview={settings.showMathPreview}
         showSolution={showSolution}
-        onShowSolution={() => setShowSolutionPrompt(true)}
+        onShowSolution={handleRequestShowSolution}
         autoAdvanceSeconds={autoAdvanceSeconds}
       />
 
@@ -289,6 +341,8 @@ const GameContainer = ({ settings }: GameContainerProps) => {
         onClose={() => {
           setShowSolutionPrompt(false);
           setSolutionError('');
+          setSolutionPassword('');
+          setSolutionLoading(false);
         }}
       >
         <div className="space-y-3 text-sm text-[var(--text)]">
@@ -297,37 +351,36 @@ const GameContainer = ({ settings }: GameContainerProps) => {
             type="password"
             className="w-full rounded-md border border-[var(--border)] bg-[var(--input-bg)] px-3 py-2 text-[var(--text)] outline-none"
             placeholder="Password"
+            value={solutionPassword}
+            onChange={(e) => {
+              setSolutionPassword(e.target.value);
+              setSolutionError('');
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                const target = e.target as HTMLInputElement;
-                if (target.value === 'NYCT') {
-                  setShowSolution(true);
-                  setShowSolutionPrompt(false);
-                  setSolutionError('');
-                } else {
-                  setSolutionError('Incorrect password.');
-                }
+                e.preventDefault();
+                void handleVerifySolution();
               }
             }}
           />
           {solutionError && <p className="text-xs text-rose-400">{solutionError}</p>}
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowSolutionPrompt(false)}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowSolutionPrompt(false);
+                setSolutionError('');
+                setSolutionPassword('');
+                setSolutionLoading(false);
+              }}
+            >
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                const input = document.querySelector<HTMLInputElement>('input[type=\"password\"]');
-                if (input?.value === 'NYCT') {
-                  setShowSolution(true);
-                  setShowSolutionPrompt(false);
-                  setSolutionError('');
-                } else {
-                  setSolutionError('Incorrect password.');
-                }
-              }}
+              onClick={() => void handleVerifySolution()}
+              disabled={solutionLoading}
             >
-              Reveal
+              {solutionLoading ? 'Checking...' : 'Reveal'}
             </Button>
           </div>
         </div>
