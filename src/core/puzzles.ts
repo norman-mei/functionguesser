@@ -1,7 +1,7 @@
 import { Difficulty, Puzzle } from './types';
 
-const rnd = (min: number, max: number) => Math.random() * (max - min) + min;
-const rndInt = (min: number, max: number) => Math.floor(rnd(min, max + 1));
+const rnd = (rng: () => number, min: number, max: number) => rng() * (max - min) + min;
+const rndInt = (rng: () => number, min: number, max: number) => Math.floor(rnd(rng, min, max + 1));
 
 type Term = {
   latex: string;
@@ -9,89 +9,83 @@ type Term = {
   tags: string[];
 };
 
-const polynomialTerm = (opts?: { integerOnly?: boolean }): Term => {
-  const power = opts?.integerOnly ? rndInt(1, 2) : rndInt(1, 3);
-  let coef: number;
-  if (opts?.integerOnly) {
-    const int = rndInt(-3, 3);
-    coef = int === 0 ? 1 : int;
-  } else {
-    const coefRange = power === 1 ? 1 : power === 2 ? 0.2 : 0.02;
-    coef = parseFloat(rnd(-coefRange, coefRange).toFixed(2)) || coefRange / 2;
+const nonZeroInt = (rng: () => number, min: number, max: number) => {
+  let val = 0;
+  while (val === 0) {
+    val = rndInt(rng, min, max);
   }
+  return val;
+};
+
+const polynomialTerm = (rng: () => number): Term => {
+  const power = rndInt(rng, 1, 3);
+  const coef = nonZeroInt(rng, -4, 4);
   const coefStr = coef === 1 ? '' : coef === -1 ? '-' : coef.toString();
   const latex = power === 1 ? `${coefStr}x` : `${coefStr}x^{${power}}`;
   const complexity = 1 + power * 0.4 + Math.abs(coef) * 5;
   return { latex, complexity, tags: ['polynomial'] };
 };
 
-const trigTerm = (opts?: { integerOnly?: boolean }): Term => {
+const trigTerm = (rng: () => number): Term => {
   const funcs = ['\\sin', '\\cos', '\\tan'];
-  const fn = funcs[rndInt(0, funcs.length - 1)];
-  const freq = opts?.integerOnly ? 1 : rndInt(1, 2);
-  const coef = opts?.integerOnly
-    ? (() => {
-        const c = rndInt(-2, 2);
-        return c === 0 ? 1 : c;
-      })()
-    : parseFloat(rnd(-2, 2).toFixed(1)) || 1;
+  const fn = funcs[rndInt(rng, 0, funcs.length - 1)];
+  const freq = rndInt(rng, 1, 3);
+  const coef = nonZeroInt(rng, -3, 3);
   const coefStr = coef === 1 ? '' : coef === -1 ? '-' : coef.toString();
   const latex = `${coefStr}${fn}(${freq === 1 ? 'x' : `${freq}x`})`;
   const complexity = 2.2 + Math.abs(coef) * 0.15 + (fn === '\\tan' ? 1 : 0);
   return { latex, complexity, tags: ['trigonometry'] };
 };
 
-const expTerm = (): Term => {
-  const rate = parseFloat((rnd(0.05, 0.18)).toFixed(3));
-  const coef = parseFloat((rnd(-1, 1)).toFixed(2)) || 0.5;
+const expTerm = (rng: () => number): Term => {
+  const rate = nonZeroInt(rng, -2, 2);
+  const coef = nonZeroInt(rng, -3, 3);
   const coefStr = coef === 1 ? '' : coef === -1 ? '-' : coef.toString();
   const latex = `${coefStr}e^{${rate}x}`;
   // Increase complexity to avoid classifying exponential-heavy terms as "very easy"
-  const complexity = 4 + rate * 15 + Math.abs(coef) * 1.2;
+  const complexity = 4 + Math.abs(rate) * 7 + Math.abs(coef) * 1.2;
   return { latex, complexity, tags: ['exponential'] };
 };
 
-const logTerm = (): Term => {
-  const coef = parseFloat((rnd(-1.5, 1.5)).toFixed(2)) || 0.6;
+const logTerm = (rng: () => number): Term => {
+  const coef = nonZeroInt(rng, -3, 3);
   const coefStr = coef === 1 ? '' : coef === -1 ? '-' : coef.toString();
-  const innerCoef = parseFloat((rnd(0.5, 1.2)).toFixed(2));
+  const innerCoef = nonZeroInt(rng, 1, 3);
   const latex = `${coefStr}\\ln(\\left|${innerCoef}x\\right|+1)`;
   const complexity = 4 + Math.abs(coef) * 1.5 + Math.abs(innerCoef) * 0.5;
   return { latex, complexity, tags: ['logarithmic'] };
 };
 
-const absTerm = (): Term => {
-  const coef = parseFloat((rnd(-1.2, 1.2)).toFixed(2)) || 0.8;
+const absTerm = (rng: () => number): Term => {
+  const coef = nonZeroInt(rng, -3, 3);
   const coefStr = coef === 1 ? '' : coef === -1 ? '-' : coef.toString();
-  const slope = parseFloat((rnd(0.5, 1.3)).toFixed(2));
-  const shift = parseFloat((rnd(-1.5, 1.5)).toFixed(2));
+  const slope = nonZeroInt(rng, 1, 3);
+  const shift = nonZeroInt(rng, -3, 3);
   const latex = `${coefStr}\\left|${slope}x ${shift >= 0 ? '+' : '-'} ${Math.abs(shift)}\\right|`;
   const complexity = 1.8 + Math.abs(coef) * 0.25;
   return { latex, complexity, tags: ['absolute'] };
 };
 
-const makeTerm = (opts?: { excludeLog?: boolean; excludeAbs?: boolean; integerOnly?: boolean }): Term => {
-  const candidates: Array<() => Term> = [() => polynomialTerm({ integerOnly: opts?.integerOnly })];
+const makeTerm = (rng: () => number, opts?: { excludeLog?: boolean; excludeAbs?: boolean }): Term => {
+  const candidates: Array<() => Term> = [() => polynomialTerm(rng)];
 
-  candidates.push(() => trigTerm({ integerOnly: opts?.integerOnly }));
+  candidates.push(() => trigTerm(rng));
 
-  if (!opts?.integerOnly) {
-    candidates.push(() => expTerm());
-  }
+  candidates.push(() => expTerm(rng));
 
   if (!opts?.excludeAbs) {
-    candidates.push(() => absTerm());
+    candidates.push(() => absTerm(rng));
   }
 
   if (!opts?.excludeLog) {
-    candidates.push(() => logTerm());
+    candidates.push(() => logTerm(rng));
   }
 
-  const pick = candidates[rndInt(0, candidates.length - 1)];
+  const pick = candidates[rndInt(rng, 0, candidates.length - 1)];
   return pick();
 };
 
-const determineDifficulty = (complexity: number, length: number): Difficulty => {
+export const determineDifficulty = (complexity: number, length: number): Difficulty => {
   const score = complexity + length * 0.05;
   if (score < 3) return 'very easy';
   if (score < 4) return 'easy';
@@ -104,23 +98,59 @@ const determineDifficulty = (complexity: number, length: number): Difficulty => 
 
 const allowedFromTags = (tags: string[]) => Array.from(new Set(tags));
 
-let nextId = 1;
+let nextId = 0;
 
-export const generatePuzzle = (allowedDifficulties?: Difficulty[], attempt = 0): Puzzle => {
+export const resetPuzzleCounter = () => {
+  nextId = 0;
+};
+
+const applyVeryHardModifiers = (latex: string, rng: () => number) => {
+  let expr = latex;
+  const modifiers: Array<'integral' | 'factorial'> = [];
+  if (rng() < 0.6) modifiers.push('integral');
+  if (rng() < 0.6) modifiers.push('factorial');
+
+  modifiers.forEach((mod) => {
+    if (mod === 'integral') {
+      const integrand = latex.replace(/x/g, 't');
+      expr = `\\int_{0}^{x} (${integrand})\\, dt`;
+    } else if (mod === 'factorial') {
+      const scalarOptions = ['\\frac{1}{24}', '\\frac{1}{12}', '\\frac{1}{6}'];
+      const scalar = scalarOptions[rndInt(rng, 0, scalarOptions.length - 1)];
+      expr = `${expr} + ${scalar}\\cdot\\left|x\\right|!`;
+    }
+  });
+
+  return expr;
+};
+
+interface GeneratePuzzleOptions {
+  rng?: () => number;
+  idOverride?: number;
+  attempt?: number;
+  maxLength?: number;
+}
+
+export const generatePuzzle = (
+  allowedDifficulties?: Difficulty[],
+  options?: GeneratePuzzleOptions
+): Puzzle => {
+  const rng = options?.rng ?? Math.random;
+  const attempt = options?.attempt ?? 0;
+  const maxLength = options?.maxLength;
   const veryEasyOnly = allowedDifficulties?.length === 1 && allowedDifficulties[0] === 'very easy';
   const makeOpts = {
     excludeLog: veryEasyOnly,
-    excludeAbs: veryEasyOnly,
-    integerOnly: veryEasyOnly
+    excludeAbs: veryEasyOnly
   };
 
-  const termCount = rndInt(2, 4);
+  const termCount = rndInt(rng, 2, 4);
   const terms: Term[] = [];
   for (let i = 0; i < termCount; i++) {
-    terms.push(makeTerm(makeOpts));
+    terms.push(makeTerm(rng, makeOpts));
   }
 
-  const functionTex = terms
+  let functionTex = terms
     .map((t, idx) => {
       if (idx === 0) return t.latex;
       return t.latex.startsWith('-') ? t.latex : `+ ${t.latex}`;
@@ -135,12 +165,12 @@ export const generatePuzzle = (allowedDifficulties?: Difficulty[], attempt = 0):
       const buckets = allowedDifficulties;
       let tries = 0;
       while (!buckets.includes(difficulty) && tries < 10) {
-        const tweak = rnd(-0.5, 0.5);
+        const tweak = rnd(rng, -0.5, 0.5);
         difficulty = determineDifficulty(complexity + tweak, functionTex.length);
         tries++;
       }
       if (!buckets.includes(difficulty)) {
-        difficulty = buckets[rndInt(0, buckets.length - 1)];
+        difficulty = buckets[rndInt(rng, 0, buckets.length - 1)];
       }
     }
   }
@@ -152,16 +182,26 @@ export const generatePuzzle = (allowedDifficulties?: Difficulty[], attempt = 0):
   // Re-roll if very easy and unwanted components or non-integer-like coefficients slip in.
   if (difficulty === 'very easy' && attempt < 8) {
     if (hasLog || hasAbs) {
-      return generatePuzzle(allowedDifficulties, attempt + 1);
-    }
-    const containsDecimal = /[0-9]\\.[0-9]/.test(functionTex);
-    if (containsDecimal) {
-      return generatePuzzle(allowedDifficulties, attempt + 1);
+      return generatePuzzle(allowedDifficulties, { ...(options ?? {}), attempt: attempt + 1, rng });
     }
   }
 
+  const containsDecimal = /[0-9]\\.[0-9]/.test(functionTex);
+  if (containsDecimal && attempt < 8) {
+    return generatePuzzle(allowedDifficulties, { ...(options ?? {}), attempt: attempt + 1, rng });
+  }
+
+  if (difficulty === 'very hard') {
+    functionTex = applyVeryHardModifiers(functionTex, rng);
+    allowedComponents.push('factorial', 'integral');
+  }
+
+  if (maxLength && functionTex.length > maxLength && attempt < 12) {
+    return generatePuzzle(allowedDifficulties, { ...(options ?? {}), attempt: attempt + 1, rng });
+  }
+
   return {
-    id: nextId++,
+    id: options?.idOverride ?? nextId++,
     functionTex,
     difficulty,
     allowedComponents

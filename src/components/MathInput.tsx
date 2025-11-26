@@ -8,31 +8,33 @@ interface MathInputProps {
   onChange: (next: string) => void;
   placeholder?: string;
   showPreview?: boolean;
+  onInteract?: () => void;
 }
 
 const keypad = [
-  { label: '\\pi', insert: '\\pi' },
-  { label: 'sin', insert: '\\sin(x)' },
-  { label: 'cos', insert: '\\cos(x)' },
-  { label: 'tan', insert: '\\tan(x)' },
-  { label: 'exp', insert: 'e^{x}' },
-  { label: 'ln', insert: '\\ln(x)' },
-  { label: 'abs', insert: '\\left|x\\right|' },
-  { label: 'sqrt', insert: '\\sqrt{x}' },
-  { label: '^', insert: '^{2}' },
-  { label: '+', insert: '+' },
-  { label: '-', insert: '-' },
-  { label: '*', insert: '\\cdot ' },
-  { label: '(', insert: '(' },
-  { label: ')', insert: ')' }
+  { key: 'pi', display: '\\pi', insert: '\\pi' },
+  { key: 'sin', display: '\\sin(x)', insert: '\\sin(x)' },
+  { key: 'cos', display: '\\cos(x)', insert: '\\cos(x)' },
+  { key: 'tan', display: '\\tan(x)', insert: '\\tan(x)' },
+  { key: 'exp', display: 'e^{x}', insert: 'e^{x}' },
+  { key: 'ln', display: '\\ln(x)', insert: '\\ln(x)' },
+  { key: 'abs', display: '\\left|x\\right|', insert: '\\left|x\\right|' },
+  { key: 'sqrt', display: '\\sqrt{x}', insert: '\\sqrt{x}' },
+  { key: 'power', display: 'x^{2}', insert: '^{2}' },
+  { key: 'plus', display: '+', insert: '+' },
+  { key: 'minus', display: '-', insert: '-' },
+  { key: 'multiply', display: '\\cdot', insert: '\\cdot ' },
+  { key: 'left-paren', display: '(', insert: '(' },
+  { key: 'right-paren', display: ')', insert: ')' }
 ];
 
-const MathInput = ({ value, onChange, placeholder, showPreview = true }: MathInputProps) => {
+const MathInput = ({ value, onChange, placeholder, showPreview = true, onInteract }: MathInputProps) => {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const insertToken = (token: string) => {
     const input = inputRef.current;
     if (!input) return;
+    onInteract?.();
 
     const start = input.selectionStart ?? value.length;
     const end = input.selectionEnd ?? value.length;
@@ -51,7 +53,10 @@ const MathInput = ({ value, onChange, placeholder, showPreview = true }: MathInp
       <Input
         ref={inputRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onInteract?.();
+          onChange(e.target.value);
+        }}
         placeholder={placeholder}
         spellCheck={false}
       />
@@ -72,15 +77,16 @@ const MathInput = ({ value, onChange, placeholder, showPreview = true }: MathInp
         <div className="flex flex-wrap gap-2">
           {keypad.map((key) => (
             <Button
-              key={key.label}
+              key={key.key}
               variant="ghost"
               className="border border-slate-800 px-2 py-1 text-xs"
               onClick={(e) => {
                 e.preventDefault();
                 insertToken(key.insert);
               }}
+              aria-label={key.display}
             >
-              {key.label}
+              <MathJax dynamic inline>{`\\( ${key.display} \\)`}</MathJax>
             </Button>
           ))}
         </div>

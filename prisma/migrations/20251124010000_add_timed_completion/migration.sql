@@ -1,0 +1,1 @@
+-- SQLite enum expansion for ChallengeCategory (stored as TEXT); no schema change required.

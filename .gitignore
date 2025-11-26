@@ -1,5 +1,6 @@
 node_modules
 dist
+.next
 .env
 .env.local
 .env.*.local
@@ -8,3 +9,5 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 *.log
+prisma/*.db
+prisma/*.db-journal

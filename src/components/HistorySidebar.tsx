@@ -7,11 +7,15 @@ interface HistoryEntry {
   solved: boolean;
   finalGuess: string;
   timestamp: number;
+  source: 'daily' | 'weekly' | 'monthly' | 'regular' | 'timed';
 }
 
 interface HistorySidebarProps {
   entries: HistoryEntry[];
   onLoad: (entry: HistoryEntry) => void;
+  onClose?: () => void;
+  disableLoad?: boolean;
+  loadLabel?: string;
 }
 
 const difficultyStyle = (difficulty: Difficulty) => {
@@ -34,11 +38,29 @@ const difficultyStyle = (difficulty: Difficulty) => {
   }
 };
 
-const HistorySidebar = ({ entries, onLoad }: HistorySidebarProps) => {
+const HistorySidebar = ({
+  entries,
+  onLoad,
+  onClose,
+  disableLoad = false,
+  loadLabel
+}: HistorySidebarProps) => {
   return (
     <aside className="hidden h-full flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--panel)] p-3 text-sm shadow-inner shadow-black/10 lg:flex">
       <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-wide text-[var(--muted)]">History</p>
+        <div className="flex items-center gap-2">
+          {onClose && (
+            <Button
+              variant="ghost"
+              className="px-2 py-1 text-xs"
+              onClick={onClose}
+              aria-label="Hide history"
+            >
+              &lt;&lt;
+            </Button>
+          )}
+          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">History</p>
+        </div>
         <span className="text-[11px] text-[var(--muted)]">{entries.length} saved</span>
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto pr-1">
@@ -66,13 +88,22 @@ const HistorySidebar = ({ entries, onLoad }: HistorySidebarProps) => {
                   {entry.solved ? 'Solved' : 'Unsolved'}
                 </span>
               </div>
-              <Button variant="secondary" className="px-2 py-1 text-xs" onClick={() => onLoad(entry)}>
-                Load
+              <Button
+                variant="secondary"
+                className="px-2 py-1 text-xs"
+                onClick={() => onLoad(entry)}
+                disabled={disableLoad}
+                title={disableLoad ? loadLabel ?? 'Loading previous puzzles is disabled right now.' : undefined}
+              >
+                {disableLoad ? 'Locked' : 'Load'}
               </Button>
             </div>
-            <div className="mt-2 text-xs text-[var(--muted)] break-words">
-              <MathJax dynamic inline>{`\\( f(x) = ${entry.puzzle.functionTex} \\)`}</MathJax>
-            </div>
+              <div className="mt-2 flex items-center gap-2 text-xs text-[var(--muted)] break-words">
+                <MathJax dynamic inline>{`\\( f(x) = ${entry.puzzle.functionTex} \\)`}</MathJax>
+                <span className="rounded-full border border-[var(--border)] bg-[var(--panel)] px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--muted)]">
+                  {entry.source === 'regular' ? 'play' : entry.source}
+                </span>
+              </div>
             {entry.finalGuess && (
               <div className="mt-1 text-[11px] text-[var(--muted)] break-words">
                 <MathJax dynamic inline>{`\\( ${entry.finalGuess} \\)`}</MathJax>

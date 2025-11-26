@@ -3,6 +3,8 @@
 import { MathJaxContext } from 'better-react-mathjax';
 import type { PropsWithChildren } from 'react';
 
+import { AuthProvider } from '@/context/AuthContext';
+
 const mathJaxConfig = {
   tex: {
     inlineMath: [
@@ -14,9 +16,11 @@ const mathJaxConfig = {
 
 const Providers = ({ children }: PropsWithChildren) => {
   return (
-    <MathJaxContext version={3} config={mathJaxConfig}>
-      {children}
-    </MathJaxContext>
+    <AuthProvider>
+      <MathJaxContext version={3} config={mathJaxConfig}>
+        {children}
+      </MathJaxContext>
+    </AuthProvider>
   );
 };
 

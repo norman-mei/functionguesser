@@ -6,7 +6,10 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Function Guesser',
-  description: 'Guess the hidden function from its graph.'
+  description: 'Guess the hidden function from its graph.',
+  icons: {
+    icon: '/favicon.ico'
+  }
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
